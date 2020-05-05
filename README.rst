@@ -10,6 +10,16 @@ Mapping to the format is incomplete and best effort has been made to create logi
 
 If you need to amend the mapping you can implement a custom formatter (see below).
 
+Installation
+------------
+
+.. code-block:: python
+
+    pip install django-log-formatter-ecs
+
+Usage
+-----
+
 Using in a Django logging configuration:
 
 .. code-block:: python
