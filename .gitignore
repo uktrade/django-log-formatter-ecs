@@ -1,0 +1,4 @@
+.idea/
+.tox/
+ECS_log_formatter.egg-info/
+__pycache__/
