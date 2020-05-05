@@ -17,8 +17,8 @@ setup(
     long_description=long_description,
     long_description_content_type="text/x-rst",
     install_requires=[
-        "django-ipware",
-        "kubi-ecs-logger",
+        "django-ipware>=2.1.0",
+        "kubi-ecs-logger>=0.0.6",
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
