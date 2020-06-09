@@ -2,22 +2,18 @@ import json
 import logging
 import os
 import platform
+from unittest.mock import patch
 from urllib.parse import urlparse
-
-from django.conf import settings
-
-from ipware import get_client_ip
 
 from kubi_ecs_logger import Logger
 from kubi_ecs_logger.models import BaseSchema, Severity
-
-
-DJANGO_SETTINGS_MODULE = os.getenv('DJANGO_SETTINGS_MODULE')
 
 # Event categories - https://www.elastic.co/guide/en/ecs/current/ecs-allowed-values-event-category.html  # noqa E501
 CATEGORY_DATABASE = "database"
 CATEGORY_PROCESS = "process"
 CATEGORY_WEB = "web"
+
+truthy = ("True", "true", "1")
 
 
 class ECSlogger(Logger):
@@ -34,7 +30,7 @@ class ECSFormatterBase:
 
     def _get_event_base(self, extra_labels={}):
         labels = {
-            'application': getattr(settings, "APP_NAME", None),
+            'application': os.getenv('DLFE_APP_NAME', default=None),
             'env': self._get_environment(),
         }
 
@@ -61,7 +57,11 @@ class ECSFormatterBase:
         return CATEGORY_PROCESS
 
     def _get_environment(self):
-        return DJANGO_SETTINGS_MODULE or "Unknown"
+        django_settings_module = os.getenv(
+            'DJANGO_SETTINGS_MODULE',
+            default=None,
+        )
+        return django_settings_module or "Unknown"
 
 
 class ECSSystemFormatter(ECSFormatterBase):
@@ -81,11 +81,7 @@ class ECSDBFormatter(ECSFormatterBase):
 
 class ECSRequestFormatter(ECSFormatterBase):
     def get_event(self):
-        zipkin_headers = getattr(
-            settings,
-            'ZIPKIN_HEADERS',
-            ("X-B3-TraceId", "X-B3-SpanId"),
-        )
+        zipkin_headers = ("X-B3-TraceId", "X-B3-SpanId")
 
         extra_labels = {}
 
@@ -149,34 +145,52 @@ class ECSRequestFormatter(ECSFormatterBase):
             )
 
         if getattr(self.record.request, 'user', None):
-            if getattr(settings, 'LOG_SENSITIVE_USER_DATA', False):
+            log_sensitive_user_data = os.getenv(
+                "DLFE_LOG_SENSITIVE_USER_DATA",
+                default=None,
+            ) in truthy
+
+            if log_sensitive_user_data:
+                # Defensively check for full name due to possibility of custom user app
+                try:
+                    full_name = self.record.request.user.get_full_name()
+                except AttributeError:
+                    full_name = None
+
                 # Check user attrs to account for custom user apps
                 logger_event.user(
                     email=getattr(self.record.request.user, 'email', None),
-                    full_name=getattr(self.record.request.user, 'full_name', None),  # noqa E501
+                    full_name=full_name,
                     name=getattr(self.record.request.user, 'username', None),
                     id=getattr(self.record.request.user, 'id', None),
                 )
             else:
                 logger_event.user(
-                    id=getattr(self.record.request, 'id', None),
+                    id=getattr(self.record.request.user, 'id', None),
                 )
 
         return logger_event
 
-    def _get_ip_address(self, request):
+    # Patch Django settings as they won't be ready yet
+    @patch(
+        'ipware.defaults.settings',
+        IPWARE_META_PRECEDENCE_ORDER=None,
+    )
+    @patch(
+        'ipware.defaults.settings',
+        IPWARE_PRIVATE_IP_PREFIX=None,
+    )
+    def _get_ip_address(self, precedence, prefix, request):
+        from ipware import get_client_ip
         client_ip, is_routable = get_client_ip(request)
         return client_ip or "Unknown"
 
 
-try:
-    ECS_FORMATTERS = settings.ECS_FORMATTERS
-except AttributeError:
-    ECS_FORMATTERS = {
-        "root": ECSSystemFormatter,
-        "django.request": ECSRequestFormatter,
-        "django.db.backends": ECSSystemFormatter,
-    }
+ECS_FORMATTERS = {
+    "root": ECSSystemFormatter,
+    "django.request": ECSRequestFormatter,
+    "django.db.backends": ECSSystemFormatter,
+}
 
 
 class ECSFormatter(logging.Formatter):
