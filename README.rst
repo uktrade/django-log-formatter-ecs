@@ -50,17 +50,43 @@ Using in a Django logging configuration:
 Dependencies
 ------------
 
-This package uses for kubi_ecs_logger https://github.com/kumina/kubi_ecs_logger for base ECS formatting.
+This package uses for kubi_ecs_logger https://github.com/kumina/kubi_ecs_logger for base ECS formatting
 
 This package uses Django IPware https://github.com/un33k/django-ipware for IP address capture.
 
 This package is compatible with django-user_agents https://pypi.org/project/django-user-agents/ which, when used, will enhance logged user agent information.
 
-Environment variables
--------------
-To set the application name within ECS define the DLFE_APP_NAME environment variable.
+Settings
+--------
+:code:`DLFE_APP_NAME` - used to define the application name that should be logged.
 
-The formatter checks the setting DLFE_LOG_SENSITIVE_USER_DATA to see if user information should be logged. If this is not set to true, only the user's id is logged.
+:code:`DLFE_LOG_SENSITIVE_USER_DATA` - the formatter checks this setting to see if user information should be logged. If this is not set to true, only the user's id is logged.
+
+:code:`DLFE_ZIPKIN_HEADERS` - used for defining custom zipkin headers, the defaults is :code:`("X-B3-TraceId" "X-B3-SpanId")`
+
+The Django configuration file logged is determined by running:
+
+.. code-block:: python
+
+     os.getenv('DJANGO_SETTINGS_MODULE')
+
+Formatter classes
+-----------------
+
+.. code-block:: python
+
+    ECS_FORMATTERS = {
+        "root": ECSSystemFormatter,
+        "django.request": ECSRequestFormatter,
+        "django.db.backends": ECSSystemFormatter,
+    }
+
+The default class for other loggers is:
+
+.. code-block:: python
+
+    ECSSystemFormatter
+
 
 Creating a custom formatter
 ---------------------------

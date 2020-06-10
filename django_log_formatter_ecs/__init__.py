@@ -2,8 +2,9 @@ import json
 import logging
 import os
 import platform
-from unittest.mock import patch
 from urllib.parse import urlparse
+
+from django.conf import settings
 
 from kubi_ecs_logger import Logger
 from kubi_ecs_logger.models import BaseSchema, Severity
@@ -12,8 +13,6 @@ from kubi_ecs_logger.models import BaseSchema, Severity
 CATEGORY_DATABASE = "database"
 CATEGORY_PROCESS = "process"
 CATEGORY_WEB = "web"
-
-truthy = ("True", "true", "1")
 
 
 class ECSlogger(Logger):
@@ -30,7 +29,7 @@ class ECSFormatterBase:
 
     def _get_event_base(self, extra_labels={}):
         labels = {
-            'application': os.getenv('DLFE_APP_NAME', default=None),
+            'application': getattr(settings, "DLFE_APP_NAME", None),
             'env': self._get_environment(),
         }
 
@@ -57,11 +56,7 @@ class ECSFormatterBase:
         return CATEGORY_PROCESS
 
     def _get_environment(self):
-        django_settings_module = os.getenv(
-            'DJANGO_SETTINGS_MODULE',
-            default=None,
-        )
-        return django_settings_module or "Unknown"
+        return os.getenv('DJANGO_SETTINGS_MODULE') or "Unknown"
 
 
 class ECSSystemFormatter(ECSFormatterBase):
@@ -81,7 +76,11 @@ class ECSDBFormatter(ECSFormatterBase):
 
 class ECSRequestFormatter(ECSFormatterBase):
     def get_event(self):
-        zipkin_headers = ("X-B3-TraceId", "X-B3-SpanId")
+        zipkin_headers = getattr(
+            settings,
+            'DLFE_ZIPKIN_HEADERS',
+            ("X-B3-TraceId", "X-B3-SpanId"),
+        )
 
         extra_labels = {}
 
@@ -145,12 +144,7 @@ class ECSRequestFormatter(ECSFormatterBase):
             )
 
         if getattr(self.record.request, 'user', None):
-            log_sensitive_user_data = os.getenv(
-                "DLFE_LOG_SENSITIVE_USER_DATA",
-                default=None,
-            ) in truthy
-
-            if log_sensitive_user_data:
+            if getattr(settings, 'DLFE_LOG_SENSITIVE_USER_DATA', False):
                 # Defensively check for full name due to possibility of custom user app
                 try:
                     full_name = self.record.request.user.get_full_name()
@@ -171,16 +165,8 @@ class ECSRequestFormatter(ECSFormatterBase):
 
         return logger_event
 
-    # Patch Django settings as they won't be ready yet
-    @patch(
-        'ipware.defaults.settings',
-        IPWARE_META_PRECEDENCE_ORDER=None,
-    )
-    @patch(
-        'ipware.defaults.settings',
-        IPWARE_PRIVATE_IP_PREFIX=None,
-    )
-    def _get_ip_address(self, precedence, prefix, request):
+    def _get_ip_address(self, request):
+        # Import here as ipware uses settings
         from ipware import get_client_ip
         client_ip, is_routable = get_client_ip(request)
         return client_ip or "Unknown"

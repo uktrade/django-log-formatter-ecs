@@ -1,12 +1,13 @@
 import os
 import json
 import logging
-from io import BytesIO, StringIO
+from io import StringIO
 from unittest import TestCase
 from unittest.mock import patch
 
 from django.conf import settings
-from django.core.handlers.wsgi import WSGIRequest
+from django.test import override_settings
+from django.test import RequestFactory
 
 from django_log_formatter_ecs import ECSFormatter
 
@@ -29,6 +30,8 @@ class User:
 
 
 class ECSFormatterTest(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
 
     def create_logger(self, logger_name):
         log_buffer = StringIO()
@@ -51,14 +54,7 @@ class ECSFormatterTest(TestCase):
         assert output["event"]["message"] == "Test"
 
     def _create_request_log(self, add_user=False):
-        request = WSGIRequest({
-            "SERVER_NAME": "test.com",
-            "SERVER_PORT": "443",
-            "PATH_INFO": "test",
-            "REQUEST_METHOD": "test",
-            "CONTENT_TYPE": "text/html; charset=utf8",
-            "wsgi.input": BytesIO(b''),
-        })
+        request = self.factory.get('/')
 
         if add_user:
             user = User(
@@ -79,6 +75,7 @@ class ECSFormatterTest(TestCase):
         )
 
         json_output = log_buffer.getvalue()
+
         return json.loads(json_output)
 
     def test_request_formatting(self):
@@ -92,7 +89,7 @@ class ECSFormatterTest(TestCase):
         assert "id" in output["user"]
         assert "email" not in output["user"]
 
-    @patch.dict(os.environ, {'DLFE_LOG_SENSITIVE_USER_DATA': 'True'})
+    @override_settings(DLFE_LOG_SENSITIVE_USER_DATA=True)
     def test_log_sensitive_user_data_on(self):
         output = self._create_request_log(add_user=True)
 
@@ -101,11 +98,16 @@ class ECSFormatterTest(TestCase):
         assert output["user"]["full_name"] == "John Test"
         assert output["user"]["name"] == "johntest"
 
-    @patch.dict(os.environ, {'DLFE_APP_NAME': 'TestApp'})
+    @override_settings(DLFE_APP_NAME="TestApp")
     def test_app_name_log_value(self):
         output = self._create_request_log()
 
         assert output["event"]["labels"]["application"] == "TestApp"
+
+    def test_env_unset_log_value(self):
+        output = self._create_request_log()
+
+        assert output["event"]["labels"]["env"] == "Unknown"
 
     @patch.dict(os.environ, {'DJANGO_SETTINGS_MODULE': 'settings.Test'})
     def test_env_log_value(self):
