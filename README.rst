@@ -52,11 +52,17 @@ Dependencies
 
 This package uses for kubi_ecs_logger https://github.com/kumina/kubi_ecs_logger for base ECS formatting
 
+This package uses Django IPware https://github.com/un33k/django-ipware for IP address capture.
+
 This package is compatible with django-user_agents https://pypi.org/project/django-user-agents/ which, when used, will enhance logged user agent information.
 
 Settings
 --------
-The formatter checks the setting LOG_SENSITIVE_USER_DATA to see if user information should be logged. If this is not set to true, only the user's id is logged.
+:code:`DLFE_APP_NAME` - used to define the application name that should be logged.
+
+:code:`DLFE_LOG_SENSITIVE_USER_DATA` - the formatter checks this setting to see if user information should be logged. If this is not set to true, only the user's id is logged.
+
+:code:`DLFE_ZIPKIN_HEADERS` - used for defining custom zipkin headers, the defaults is :code:`("X-B3-TraceId" "X-B3-SpanId")`
 
 The Django configuration file logged is determined by running:
 
@@ -64,10 +70,8 @@ The Django configuration file logged is determined by running:
 
      os.getenv('DJANGO_SETTINGS_MODULE')
 
-
-You can set which formatter maps to which Django log by setting the ECS_FORMATTERS settings variable.
-
-This defaults to:
+Formatter classes
+-----------------
 
 .. code-block:: python
 
@@ -77,7 +81,12 @@ This defaults to:
         "django.db.backends": ECSSystemFormatter,
     }
 
-And can be used to wire up custom formatters (see next section).
+The default class for other loggers is:
+
+.. code-block:: python
+
+    ECSSystemFormatter
+
 
 Creating a custom formatter
 ---------------------------
@@ -93,8 +102,6 @@ If you wish to create your own ECS formatter, you can inherit from ECSSystemForm
             # Customise logger event
 
             return logger_event
-
-This can then be wired up to the list of ECS formatters used (see documentation of ECS_FORMATTERS for more information).
 
 Tests
 -----
