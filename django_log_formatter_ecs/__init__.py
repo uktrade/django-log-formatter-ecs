@@ -20,7 +20,7 @@ class ECSlogger(Logger):
         super(ECSlogger, self).__init__(*args, **kwargs)
 
     def get_log_dict(self):
-        return BaseSchema().dump(self._base).data
+        return BaseSchema().dump(self._base)
 
 
 class ECSFormatterBase:
