@@ -1,6 +1,6 @@
 .idea/
 .tox/
-ECS_log_formatter.egg-info/
+django_log_formatter_ecs.egg-info/
 __pycache__/
 build/
 dist/
