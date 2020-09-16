@@ -8,7 +8,7 @@ with open("README.rst", "r") as fh:
 
 setup(
     name="django_log_formatter_ecs",
-    version="0.0.4",
+    version="0.0.5",
     packages=setuptools.find_packages(),
     author="Ross Miller",
     author_email="ross.miller@digita.trade.gov.uk",
@@ -17,7 +17,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/x-rst",
     install_requires=[
-        "django-ipware~=2.1.0",
+        "django-ipware~=3.0",
         "kubi-ecs-logger~=0.1.0",
     ],
     classifiers=[
