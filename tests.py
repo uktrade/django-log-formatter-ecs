@@ -53,6 +53,14 @@ class ECSFormatterTest(TestCase):
 
         assert output["event"]["message"] == "Test"
 
+    def test_host_returns_string(self):
+        logger, log_buffer = self.create_logger("django")
+        logger.debug("Test")
+        json_output = log_buffer.getvalue()
+        output = json.loads(json_output)
+
+        assert isinstance(output["host"], str)
+
     def _create_request_log(self, add_user=False):
         request = self.factory.get('/')
 
