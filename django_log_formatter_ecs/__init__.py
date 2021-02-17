@@ -180,11 +180,16 @@ ECS_FORMATTERS = {
 
 
 class ECSFormatter(logging.Formatter):
-    def format(self, record):
+    def _get_ecs_formatter(self, record):
         if record.name in ECS_FORMATTERS:
             ecs_formatter = ECS_FORMATTERS[record.name]
         else:
             ecs_formatter = ECSSystemFormatter
+
+        return ecs_formatter
+
+    def format(self, record):
+        ecs_formatter = self._get_ecs_formatter(record)
 
         formatter = ecs_formatter(record=record)
         logger_event = formatter.get_event()
