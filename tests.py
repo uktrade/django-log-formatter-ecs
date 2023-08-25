@@ -117,10 +117,12 @@ class ECSFormatterTest(TestCase):
 
     def test_request_body_already_accessed(self):
         # checks that if the request body has already been accessed, the exception is handled.
-        request = self.factory.get('/')
-        x = request.body  # reading the body so it can't be accessed again
+        custom_request = self.factory.post('/', data={"test": "test"})
 
-        output = self._create_request_log(request=request)
+        # mocking the request body being accessed
+        custom_request._read_started = True
+
+        output = self._create_request_log(request=custom_request)
 
         assert output["httprequest"]["body_bytes"] == 0
         assert output["httprequest"]["body_content"] == ""
