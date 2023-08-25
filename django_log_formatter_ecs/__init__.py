@@ -5,6 +5,7 @@ import platform
 from urllib.parse import urlparse
 
 from django.conf import settings
+from django.http import RawPostDataException
 
 from kubi_ecs_logger import Logger
 from kubi_ecs_logger.models import BaseSchema, Severity
@@ -100,7 +101,12 @@ class ECSRequestFormatter(ECSFormatterBase):
 
         ip = self._get_ip_address(self.record.request)
 
-        request_bytes = len(self.record.request.body)
+        try:
+            request_bytes = len(self.record.request.body)
+            request_body = self.record.request.body
+        except RawPostDataException:
+            request_bytes = 0
+            request_body = b''
 
         logger_event.url(
             path=parsed_url.path,
@@ -117,7 +123,7 @@ class ECSRequestFormatter(ECSFormatterBase):
             port=parsed_url.port,
         ).http_request(
             body_bytes=request_bytes,
-            body_content=self.record.request.body,
+            body_content=request_body,
             method=self.record.request.method,
         )
 
