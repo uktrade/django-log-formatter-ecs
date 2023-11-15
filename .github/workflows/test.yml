@@ -27,5 +27,8 @@ jobs:
       - name: Install dependencies
         run: poetry install
 
+      - name: Run pre-commit checks
+        run: poetry run pre-commit
+
       - name: Run unit tests
         run: poetry run pytest
