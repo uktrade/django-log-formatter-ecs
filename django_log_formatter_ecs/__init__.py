@@ -5,9 +5,9 @@ import platform
 from urllib.parse import urlparse
 
 from django.conf import settings
-
 from kubi_ecs_logger import Logger
-from kubi_ecs_logger.models import BaseSchema, Severity
+from kubi_ecs_logger.models import BaseSchema
+from kubi_ecs_logger.models import Severity
 
 # Event categories - https://www.elastic.co/guide/en/ecs/current/ecs-allowed-values-event-category.html  # noqa E501
 CATEGORY_DATABASE = "database"
@@ -29,20 +29,24 @@ class ECSFormatterBase:
 
     def _get_event_base(self, extra_labels={}):
         labels = {
-            'application': getattr(settings, "DLFE_APP_NAME", None),
-            'env': self._get_environment(),
+            "application": getattr(settings, "DLFE_APP_NAME", None),
+            "env": self._get_environment(),
         }
 
-        logger = ECSlogger().event(
-            category=self._get_event_category(),
-            action=self.record.name,
-            message=self.record.getMessage(),
-            labels={
-                **labels,
-                **extra_labels,
-            },
-        ).host(
-            architecture=platform.machine(),
+        logger = (
+            ECSlogger()
+            .event(
+                category=self._get_event_category(),
+                action=self.record.name,
+                message=self.record.getMessage(),
+                labels={
+                    **labels,
+                    **extra_labels,
+                },
+            )
+            .host(
+                architecture=platform.machine(),
+            )
         )
 
         return logger
@@ -56,7 +60,7 @@ class ECSFormatterBase:
         return CATEGORY_PROCESS
 
     def _get_environment(self):
-        return os.getenv('DJANGO_SETTINGS_MODULE') or "Unknown"
+        return os.getenv("DJANGO_SETTINGS_MODULE") or "Unknown"
 
 
 class ECSSystemFormatter(ECSFormatterBase):
@@ -78,7 +82,7 @@ class ECSRequestFormatter(ECSFormatterBase):
     def get_event(self):
         zipkin_headers = getattr(
             settings,
-            'DLFE_ZIPKIN_HEADERS',
+            "DLFE_ZIPKIN_HEADERS",
             ("X-B3-TraceId", "X-B3-SpanId"),
         )
 
@@ -86,17 +90,19 @@ class ECSRequestFormatter(ECSFormatterBase):
 
         for zipkin_header in zipkin_headers:
             if getattr(
-                self.record.request.headers, zipkin_header, None,
+                self.record.request.headers,
+                zipkin_header,
+                None,
             ):
-                extra_labels[zipkin_header] = self.record.request.headers[zipkin_header]  # noqa E501
+                extra_labels[zipkin_header] = self.record.request.headers[
+                    zipkin_header
+                ]  # noqa E501
 
         logger_event = self._get_event_base(
             extra_labels=extra_labels,
         )
 
-        parsed_url = urlparse(
-            self.record.request.build_absolute_uri()
-        )
+        parsed_url = urlparse(self.record.request.build_absolute_uri())
 
         ip = self._get_ip_address(self.record.request)
 
@@ -107,9 +113,7 @@ class ECSRequestFormatter(ECSFormatterBase):
             domain=parsed_url.hostname,
         ).source(
             ip=self._get_ip_address(self.record.request)
-        ).http_response(
-            status_code=getattr(self.record, 'status_code', None)
-        ).client(
+        ).http_response(status_code=getattr(self.record, "status_code", None)).client(
             address=ip,
             bytes=request_bytes,
             domain=parsed_url.hostname,
@@ -122,14 +126,16 @@ class ECSRequestFormatter(ECSFormatterBase):
         )
 
         user_agent_string = getattr(
-            self.record.request.headers, 'user_agent', None,
+            self.record.request.headers,
+            "user_agent",
+            None,
         )
 
-        if not user_agent_string and 'HTTP_USER_AGENT' in self.record.request.META:  # noqa E501
-            user_agent_string = self.record.request.META['HTTP_USER_AGENT']
+        if not user_agent_string and "HTTP_USER_AGENT" in self.record.request.META:  # noqa E501
+            user_agent_string = self.record.request.META["HTTP_USER_AGENT"]
 
         # Check for use of django-user_agents
-        if getattr(self.record.request, 'user_agent', None):
+        if getattr(self.record.request, "user_agent", None):
             logger_event.user_agent(
                 device={
                     "name": self.record.request.user_agent.device.family,
@@ -143,8 +149,8 @@ class ECSRequestFormatter(ECSFormatterBase):
                 original=user_agent_string,
             )
 
-        if getattr(self.record.request, 'user', None):
-            if getattr(settings, 'DLFE_LOG_SENSITIVE_USER_DATA', False):
+        if getattr(self.record.request, "user", None):
+            if getattr(settings, "DLFE_LOG_SENSITIVE_USER_DATA", False):
                 # Defensively check for full name due to possibility of custom user app
                 try:
                     full_name = self.record.request.user.get_full_name()
@@ -153,14 +159,14 @@ class ECSRequestFormatter(ECSFormatterBase):
 
                 # Check user attrs to account for custom user apps
                 logger_event.user(
-                    email=getattr(self.record.request.user, 'email', None),
+                    email=getattr(self.record.request.user, "email", None),
                     full_name=full_name,
-                    name=getattr(self.record.request.user, 'username', None),
-                    id=getattr(self.record.request.user, 'id', None),
+                    name=getattr(self.record.request.user, "username", None),
+                    id=getattr(self.record.request.user, "id", None),
                 )
             else:
                 logger_event.user(
-                    id=getattr(self.record.request.user, 'id', None),
+                    id=getattr(self.record.request.user, "id", None),
                 )
 
         return logger_event
@@ -168,6 +174,7 @@ class ECSRequestFormatter(ECSFormatterBase):
     def _get_ip_address(self, request):
         # Import here as ipware uses settings
         from ipware import get_client_ip
+
         client_ip, is_routable = get_client_ip(request)
         return client_ip or "Unknown"
 
