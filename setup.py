@@ -3,7 +3,7 @@ from distutils.core import setup
 import setuptools
 
 
-with open("README.rst", "r") as fh:
+with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(
@@ -11,7 +11,7 @@ setup(
     version="0.0.5",
     packages=setuptools.find_packages(),
     author="Ross Miller",
-    author_email="ross.miller@digita.trade.gov.uk",
+    author_email="ross.miller@digital.trade.gov.uk",
     url="https://github.com/uktrade/django-log-formatter-ecs",
     description="ECS log formatter for Django",
     long_description=long_description,
