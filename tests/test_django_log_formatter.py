@@ -1,13 +1,13 @@
-import os
 import json
 import logging
+import os
 from io import StringIO
 from unittest import TestCase
 from unittest.mock import patch
 
 from django.conf import settings
-from django.test import override_settings
 from django.test import RequestFactory
+from django.test import override_settings
 
 from django_log_formatter_ecs import ECSFormatter
 
@@ -54,7 +54,7 @@ class ECSFormatterTest(TestCase):
         assert output["event"]["message"] == "Test"
 
     def _create_request_log(self, add_user=False):
-        request = self.factory.get('/')
+        request = self.factory.get("/")
 
         if add_user:
             user = User(
@@ -64,14 +64,14 @@ class ECSFormatterTest(TestCase):
                 last_name="Test",
                 username="johntest",
             )
-            setattr(request, 'user', user)
+            setattr(request, "user", user)
 
         logger, log_buffer = self.create_logger("django.request")
         logger.error(
             msg="Request test",
             extra={
                 "request": request,
-            }
+            },
         )
 
         json_output = log_buffer.getvalue()
@@ -109,7 +109,7 @@ class ECSFormatterTest(TestCase):
 
         assert output["event"]["labels"]["env"] == "Unknown"
 
-    @patch.dict(os.environ, {'DJANGO_SETTINGS_MODULE': 'settings.Test'})
+    @patch.dict(os.environ, {"DJANGO_SETTINGS_MODULE": "settings.Test"})
     def test_env_log_value(self):
         output = self._create_request_log()
 
