@@ -28,4 +28,4 @@ jobs:
         run: poetry install
 
       - name: Run unit tests
-        run: poetry run tox
+        run: poetry run pytest
