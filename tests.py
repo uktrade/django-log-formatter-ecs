@@ -53,8 +53,8 @@ class ECSFormatterTest(TestCase):
 
         assert output["event"]["message"] == "Test"
 
-    def _create_request_log(self, add_user=False):
-        request = self.factory.get('/')
+    def _create_request_log(self, add_user=False, request=None):
+        request = request or self.factory.get('/')
 
         if add_user:
             user = User(
@@ -114,3 +114,15 @@ class ECSFormatterTest(TestCase):
         output = self._create_request_log()
 
         assert output["event"]["labels"]["env"] == "settings.Test"
+
+    def test_request_body_already_accessed(self):
+        # checks that if the request body has already been accessed, the exception is handled.
+        custom_request = self.factory.post('/', data={"test": "test"})
+
+        # mocking the request body being accessed
+        custom_request._read_started = True
+
+        output = self._create_request_log(request=custom_request)
+
+        assert output["httprequest"]["body_bytes"] == 0
+        assert output["httprequest"]["body_content"] == ""
