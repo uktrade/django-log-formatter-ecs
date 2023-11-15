@@ -21,6 +21,9 @@ jobs:
       - name: Install setuptools
         run: pip install --upgrade setuptools
 
+      - name: Install Poetry
+        run: pip install --upgrade poetry
+
       - name: Install dependencies
         run: poetry install
 
