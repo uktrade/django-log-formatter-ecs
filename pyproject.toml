@@ -13,7 +13,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-django = "^4.2.11"
+django = "^4.2.15"
 django-ipware = "^5.0.2"
 kubi-ecs-logger = "^0.1.2"
 python = ">=3.8,<4"
