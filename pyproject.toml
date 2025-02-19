@@ -3,7 +3,7 @@ line-length = 100
 
 [tool.poetry]
 name = "django-log-formatter-ecs"
-version = "0.0.6"
+version = "0.0.7"
 description = "Formats Django logs in ECS format."
 authors = ["Department for Business and Trade Platform Team <sre-team@digital.trade.gov.uk>"]
 license = "MIT"
@@ -14,7 +14,7 @@ packages = [
 
 [tool.poetry.dependencies]
 django = "^4.2.15"
-django-ipware = "^5.0.2"
+django-ipware = "^7.0.0"
 kubi-ecs-logger = "^0.1.2"
 python = ">=3.8,<4"
 
