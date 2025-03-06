@@ -138,7 +138,3 @@ class ECSFormatterTest(TestCase):
         output = self._create_request_log()
 
         assert output["event"]["labels"]["env"] == "settings.Test"
-
-    # django_log_formatter_ecs.ECSRequestFormatter.get_event()
-    def test_get_event(self):
-        pass
