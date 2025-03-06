@@ -10,6 +10,7 @@ from django.test import RequestFactory
 from django.test import override_settings
 
 from django_log_formatter_ecs import ECSFormatter
+from django_log_formatter_ecs import ECSRequestFormatter
 
 settings.configure(
     DEBUG=True,
@@ -27,6 +28,29 @@ class User:
 
     def get_full_name(self):
         return f"{self.first_name} {self.last_name}"
+
+
+class MockRecord:
+    def __init__(self, name, request):
+        self.name = name
+        self.request = request
+
+    def getMessage(self):
+        return f"Message"
+
+
+class ECSRequestFormatterTest(TestCase):
+    def test_get_event_resolves_with_expected_fields(self):
+        headers = {"SERVER_NAME": "test-server", "SERVER_PORT": 1234, "REMOTE_ADDR": "111.1.1.1"}
+        request = RequestFactory().get(path="/", data={}, **headers)
+
+        result = ECSRequestFormatter(MockRecord("testing-123", request)).get_event().get_log_dict()
+
+        assert result["event"]["action"] == "testing-123"
+        assert result["httprequest"]["method"] == "GET"
+        assert result["client"]["domain"] == "test-server"
+        assert result["client"]["port"] == 1234
+        assert result["source"]["ip"] == "111.1.1.1"
 
 
 class ECSFormatterTest(TestCase):
@@ -114,3 +138,7 @@ class ECSFormatterTest(TestCase):
         output = self._create_request_log()
 
         assert output["event"]["labels"]["env"] == "settings.Test"
+
+    # django_log_formatter_ecs.ECSRequestFormatter.get_event()
+    def test_get_event(self):
+        pass
